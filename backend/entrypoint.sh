@@ -30,8 +30,9 @@ conn.close()
 done
 echo "  Database is ready!"
 
-# --- Apply migrations ---
-echo "[2/4] Applying database migrations..."
+# --- Generate & apply migrations ---
+echo "[2/4] Generating and applying database migrations..."
+python manage.py makemigrations --noinput
 python manage.py migrate --noinput
 echo "  Migrations applied!"
 
