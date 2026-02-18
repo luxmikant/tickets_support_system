@@ -43,14 +43,14 @@ services:
 
   # ---------------------------------------------------------------------------
   # Django Backend (Gunicorn)
-  # All sensitive values come from .env via env_file.
+  # Values come from the environment or from a .env file in the project root.
+  # Docker Compose automatically reads .env for ${VAR} substitution.
+  # Create one from: cp .env.example .env
   # ---------------------------------------------------------------------------
   backend:
     build: ./backend
-    env_file:
-      - .env                        # load all vars from .env file
     environment:
-      # These override .env — safe defaults so the app starts even without .env
+      # Safe defaults — will be overridden if the same var exists in .env or host env
       POSTGRES_HOST: ${POSTGRES_HOST:-db}      # "db" = Docker service; Supabase: override in .env
       POSTGRES_PORT: ${POSTGRES_PORT:-5432}
       POSTGRES_DB: ${POSTGRES_DB:-tickets_db}

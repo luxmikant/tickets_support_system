@@ -25,9 +25,28 @@ export default function TicketForm({ onTicketCreated }) {
 
   const classifyTimeoutRef = useRef(null);
 
+  // Call LLM classify endpoint — defined before handleDescriptionChange so it
+  // can be included in the useCallback deps array without hoisting issues.
+  const handleClassify = useCallback(async (description) => {
+    if (!description || description.trim().length < 10) return;
+
+    setIsClassifying(true);
+    try {
+      const result = await classifyTicket(description);
+      setFormData((prev) => ({
+        ...prev,
+        category: result.suggested_category || prev.category,
+        priority: result.suggested_priority || prev.priority,
+      }));
+      setLlmSuggested(true);
+    } catch (err) {
+      console.warn('LLM classification failed — using defaults', err);
+    } finally {
+      setIsClassifying(false);
+    }
+  }, []);
+
   // Debounced LLM classification — triggers 1.5s after user stops typing.
-  // Note: deps array is empty intentionally — we only want to set up this
-  // effect once during component mount. The closure captures the state updates.
   const handleDescriptionChange = useCallback(
     (e) => {
       const value = e.target.value;
@@ -45,29 +64,8 @@ export default function TicketForm({ onTicketCreated }) {
         }, 1500);
       }
     },
-    []
+    [handleClassify]
   );
-
-  // Call LLM classify endpoint
-  const handleClassify = async (description) => {
-    if (!description || description.trim().length < 10) return;
-
-    setIsClassifying(true);
-    try {
-      const result = await classifyTicket(description);
-      setFormData((prev) => ({
-        ...prev,
-        category: result.suggested_category || prev.category,
-        priority: result.suggested_priority || prev.priority,
-      }));
-      setLlmSuggested(true);
-    } catch (err) {
-      console.warn('LLM classification failed — using defaults', err);
-      // Don't show error to user — classification failure is non-blocking
-    } finally {
-      setIsClassifying(false);
-    }
-  };
 
   // Also classify on description blur (if not already classified)
   const handleDescriptionBlur = () => {
