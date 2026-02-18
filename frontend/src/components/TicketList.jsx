@@ -70,13 +70,11 @@ export default function TicketList({ refreshKey }) {
   );
 
   // Re-fetch when refreshKey changes (new ticket created)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     fetchTickets(filters);
   }, [refreshKey]); // intentionally omit filters/fetchTickets — we only want this to fire on new ticket
 
   // Initial load only
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     fetchTickets(filters);
   }, []); // intentionally empty — runs once on mount
