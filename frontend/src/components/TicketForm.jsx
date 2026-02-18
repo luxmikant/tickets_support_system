@@ -194,13 +194,14 @@ export default function TicketForm({ onTicketCreated }) {
           <div>
             <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
               Category
+              {llmSuggested && <span className="ml-1 text-xs text-blue-500 font-normal">(AI suggested — editable)</span>}
             </label>
             <select
               id="category"
               name="category"
               value={formData.category}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${llmSuggested ? 'border-blue-400 bg-blue-50' : 'border-gray-300'}`}
             >
               {CATEGORIES.map((cat) => (
                 <option key={cat.value} value={cat.value}>
@@ -213,13 +214,14 @@ export default function TicketForm({ onTicketCreated }) {
           <div>
             <label htmlFor="priority" className="block text-sm font-medium text-gray-700 mb-1">
               Priority
+              {llmSuggested && <span className="ml-1 text-xs text-blue-500 font-normal">(AI suggested — editable)</span>}
             </label>
             <select
               id="priority"
               name="priority"
               value={formData.priority}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${llmSuggested ? 'border-blue-400 bg-blue-50' : 'border-gray-300'}`}
             >
               {PRIORITIES.map((pri) => (
                 <option key={pri.value} value={pri.value}>
