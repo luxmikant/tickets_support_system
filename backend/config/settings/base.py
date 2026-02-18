@@ -70,6 +70,15 @@ MIDDLEWARE = [
 # DATABASE — PostgreSQL via environment variables
 # =============================================================================
 
+# ---------------------------------------------------------------------------
+# Database configuration
+#
+# Reads individual POSTGRES_* env vars.
+# POSTGRES_SSL_MODE=require  →  used for hosted databases like Supabase
+#                               (Supabase enforces SSL on all connections)
+# ---------------------------------------------------------------------------
+_ssl_mode = os.environ.get('POSTGRES_SSL_MODE', '').strip()
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -81,6 +90,8 @@ DATABASES = {
         'CONN_MAX_AGE': 60,  # Persistent connections for 60s
         'OPTIONS': {
             'connect_timeout': 10,
+            # Add sslmode only when explicitly set (e.g. 'require' for Supabase)
+            **({'sslmode': _ssl_mode} if _ssl_mode else {}),
         },
     }
 }

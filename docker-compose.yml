@@ -1,28 +1,39 @@
 # =============================================================================
 # Docker Compose — Support Ticket System
 # =============================================================================
-# Run the entire stack: docker-compose up --build
+# Prerequisites:
+#   cp .env.example .env    # then fill in your values
+#
+# Run the entire stack:
+#   docker-compose up --build
 #
 # Services:
-#   db       — PostgreSQL 16 (data persisted in a named volume)
+#   db       — PostgreSQL 16  (local DB; comment out to use Supabase instead)
 #   backend  — Django + Gunicorn (auto-migrates on startup)
 #   frontend — React app served via Nginx (proxies /api to backend)
+#
+# To switch to Supabase:
+#   1. Comment out the entire "db:" service block below
+#   2. Remove the "depends_on: db" block from the backend service
+#   3. Update POSTGRES_* vars in .env to your Supabase credentials
+#   4. Set POSTGRES_SSL_MODE=require in .env
 # =============================================================================
 
 services:
   # ---------------------------------------------------------------------------
-  # PostgreSQL Database
+  # PostgreSQL Database  — LOCAL only
+  # Comment this entire block out when using Supabase.
   # ---------------------------------------------------------------------------
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: tickets_db
-      POSTGRES_USER: tickets_user
-      POSTGRES_PASSWORD: tickets_password
+      POSTGRES_DB: ${POSTGRES_DB:-tickets_db}
+      POSTGRES_USER: ${POSTGRES_USER:-tickets_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tickets_password}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U tickets_user -d tickets_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tickets_user} -d ${POSTGRES_DB:-tickets_db}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -32,26 +43,31 @@ services:
 
   # ---------------------------------------------------------------------------
   # Django Backend (Gunicorn)
+  # All sensitive values come from .env via env_file.
   # ---------------------------------------------------------------------------
   backend:
     build: ./backend
-    depends_on:
-      db:
-        condition: service_healthy
+    env_file:
+      - .env                        # load all vars from .env file
     environment:
-      - POSTGRES_DB=tickets_db
-      - POSTGRES_USER=tickets_user
-      - POSTGRES_PASSWORD=tickets_password
-      - POSTGRES_HOST=db
-      - POSTGRES_PORT=5432
-      - DJANGO_SECRET_KEY=django-insecure-change-this-in-production
-      - DJANGO_SETTINGS_MODULE=config.settings.production
-      - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,backend
-      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
-      - GUNICORN_WORKERS=3
+      # These override .env — safe defaults so the app starts even without .env
+      POSTGRES_HOST: ${POSTGRES_HOST:-db}      # "db" = Docker service; Supabase: override in .env
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_DB: ${POSTGRES_DB:-tickets_db}
+      POSTGRES_USER: ${POSTGRES_USER:-tickets_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tickets_password}
+      POSTGRES_SSL_MODE: ${POSTGRES_SSL_MODE:-}
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-django-insecure-dev-only}
+      DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE:-config.settings.production}
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,backend}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GUNICORN_WORKERS: ${GUNICORN_WORKERS:-3}
+    depends_on:
+      db:                           # Remove this block when using Supabase
+        condition: service_healthy
     ports:
       - "8000:8000"
-    stop_grace_period: 30s    # Matches gunicorn graceful_timeout
+    stop_grace_period: 30s          # Matches gunicorn graceful_timeout
     restart: unless-stopped
 
   # ---------------------------------------------------------------------------
@@ -66,7 +82,7 @@ services:
     restart: unless-stopped
 
 # =============================================================================
-# Persistent Volumes
+# Persistent Volumes — only used by the local "db" service
 # =============================================================================
 volumes:
   postgres_data:
