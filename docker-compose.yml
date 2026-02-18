@@ -36,7 +36,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tickets_user} -d ${POSTGRES_DB:-tickets_db}"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 15s    # give Postgres time to init before counting failures
     restart: unless-stopped
     ports:
       - "5432:5432"
