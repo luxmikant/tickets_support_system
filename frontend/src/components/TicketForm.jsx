@@ -25,7 +25,9 @@ export default function TicketForm({ onTicketCreated }) {
 
   const classifyTimeoutRef = useRef(null);
 
-  // Debounced LLM classification — triggers 1.5s after user stops typing
+  // Debounced LLM classification — triggers 1.5s after user stops typing.
+  // Note: deps array is empty intentionally — we only want to set up this
+  // effect once during component mount. The closure captures the state updates.
   const handleDescriptionChange = useCallback(
     (e) => {
       const value = e.target.value;
@@ -43,7 +45,7 @@ export default function TicketForm({ onTicketCreated }) {
         }, 1500);
       }
     },
-    [] // eslint-disable-line react-hooks/exhaustive-deps
+    []
   );
 
   // Call LLM classify endpoint

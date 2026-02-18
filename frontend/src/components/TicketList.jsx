@@ -28,6 +28,8 @@ export default function TicketList({ refreshKey }) {
   const prevSearchRef = useRef('');
 
   // Fetch tickets whenever filters or refreshKey change
+  // Note: deps array is correctly minimal — we reuse the same fetchTickets
+  // function instance across renders for efficiency
   const fetchTickets = useCallback(async (currentFilters) => {
     setLoading(true);
     setError('');
@@ -70,12 +72,12 @@ export default function TicketList({ refreshKey }) {
   // Re-fetch when refreshKey changes (new ticket created)
   useEffect(() => {
     fetchTickets(filters);
-  }, [refreshKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [refreshKey]);
 
   // Initial load
   useEffect(() => {
     fetchTickets(filters);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   // Handle status change on a ticket
   const handleStatusChange = async (ticketId, data) => {
