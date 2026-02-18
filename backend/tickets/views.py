@@ -58,7 +58,8 @@ class TicketViewSet(
         serializer = self.get_serializer(instance, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        # Return full ticket data after update
+        # Refresh from DB and return the full ticket representation
+        instance.refresh_from_db()
         return Response(TicketSerializer(instance).data)
 
     def create(self, request, *args, **kwargs):
