@@ -1,2 +1,4 @@
-/* Tailwind CSS v4 — import-based configuration */
-@import "tailwindcss";
+/* Tailwind CSS v4 */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
