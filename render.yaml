@@ -32,92 +32,65 @@ services:
     # Port
     numInstances: 1
     
-    # Environment variables (reference Supabase connection string and secrets)
+    # Environment variables (Supabase PostgreSQL)
     envVars:
       # Django settings
       - key: DJANGO_SETTINGS_MODULE
-        value: config.settings.production
+        value: config.settings.render
       
       - key: DJANGO_SECRET_KEY
-        sync: false
+        sync: false  # 🔒 Set in Render dashboard (from generate_secret_key.py)
       
       - key: DJANGO_ALLOWED_HOSTS
-        value: support-ticket-backend.onrender.com,localhost,127.0.0.1
-        # Update to your actual Render domain once deployed
+        value: support-ticket-backend.onrender.com
+        # Update to your actual Render domain after first deploy
       
-      # PostgreSQL (Supabase)
+      # PostgreSQL — Supabase Connection
       - key: POSTGRES_ENGINE
         value: django.db.backends.postgresql
       
       - key: POSTGRES_DB
-        fromDatabase:
-          name: tickets-db  # Reference to your database service (if using Render DB)
-          property: database
-        # OR use Supabase directly (uncomment if not using Render DB):
-        # value: postgres
+        value: postgres  # From your Supabase connection string
       
       - key: POSTGRES_USER
-        fromDatabase:
-          name: tickets-db
-          property: username
-        # OR Supabase user:
-        # sync: false
+        value: postgres  # From your Supabase connection string
       
       - key: POSTGRES_PASSWORD
-        fromDatabase:
-          name: tickets-db
-          property: password
-        # OR Supabase password (sync: false, store in secrets):
-        # sync: false
+        sync: false  # 🔒 Set in Render dashboard: ldL2WLPBzBNsJXrV
       
       - key: POSTGRES_HOST
-        fromDatabase:
-          name: tickets-db
-          property: host
-        # OR use Supabase host (e.g., db.xxx.supabase.co):
-        # sync: false
+        value: db.gadxxxarhgjcvirmjupp.supabase.co  # From your Supabase connection string
       
       - key: POSTGRES_PORT
-        fromDatabase:
-          name: tickets-db
-          property: port
-        # OR hardcode Supabase port:
-        # value: "5432"
+        value: "5432"  # Standard PostgreSQL port
       
       # LLM API Keys (Google Gemini)
       - key: GEMINI_API_KEY
-        sync: false  # Set this in the Render dashboard as a secret
+        sync: false  # 🔒 Set in Render dashboard as Secret
       
       # Gunicorn workers
       - key: GUNICORN_WORKERS
-        value: "2"  # Adjust based on your plan
+        value: "2"  # Adjust based on your plan (2-4 for Free/Starter)
       
       # CORS settings (if frontend is separate)
       - key: CORS_ALLOWED_ORIGINS
-        value: >
-          http://localhost:3000,
-          https://support-ticket-frontend.onrender.com
+        value: http://localhost:3000
+        # Update after deploying frontend
+      
+      # Debug mode
+      - key: DEBUG
+        value: "false"
+      
+      # Security headers
+      - key: SECURE_BROWSER_XSS_FILTER
+        value: "true"
+      
+      - key: SECURE_CONTENT_TYPE_NOSNIFF
+        value: "true"
 
-# ==========================================================================
-# DATABASE SERVICE (Optional - Use Supabase instead)
-# Uncomment if you want Render-managed PostgreSQL instead of Supabase
-# ==========================================================================
-
-  # - type: pserv  # PostgreSQL service
-  #   name: tickets-db
-  #   env: postgres
-  #   region: ohio
-  #   plan: starter
-  #   
-  #   # PostgreSQL configuration
-  #   postgres_version: "16"
-  #   
-  #   # Database setup
-  #   preDeployCommand: >
-  #     createdb tickets_db || true;
-  #     psql -d tickets_db -c "CREATE USER tickets_user WITH PASSWORD 'your_password' CREATEDB;" || true;
-  #     psql -d tickets_db -c "ALTER USER tickets_user CREATEDB SUPERUSER;" || true;
-  #   
-  #   ipAllowList:
-  #     - source: 0.0.0.0/0
-  #       description: Allow all (update for security)
+# =============================================================================
+# NOTE: Database service is NOT needed — using Supabase PostgreSQL instead
+# If you want to use Render's managed PostgreSQL instead of Supabase, 
+# uncomment the service below and update the backend service to use 
+# fromDatabase references
+# =============================================================================
