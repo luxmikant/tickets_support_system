@@ -1,0 +1,237 @@
+# Render Blueprint Configuration - Support Ticket System
+# This file tells Render how to build and deploy your Django backend
+#
+# Location: Repository Root (render.yaml)
+# Reference: https://render.com/docs/blueprint-spec
+
+services:
+  # ==========================================================================
+  # BACKEND WEB SERVICE — Django + Gunicorn on Render
+  # ==========================================================================
+  - type: web
+    name: support-ticket-backend  # Service name in Render dashboard
+    env: python
+    region: ohio  # Choose your region (us-west, us-east, etc)
+    plan: starter  # Free, Starter, Standard, Pro
+    
+    # ==========================================================================
+    # SOURCE CODE CONFIGURATION
+    # ==========================================================================
+    
+    repo: https://github.com/luxmikant/tickets_support_system.git  # 👈 UPDATE WITH YOUR FORK
+    branch: main  # Branch to deploy from
+    
+    # Root directory of the Django app (not repo root)
+    rootDir: backend
+    
+    # ==========================================================================
+    # BUILD CONFIGURATION
+    # ==========================================================================
+    
+    buildCommand: |
+      pip install --upgrade pip && \
+      pip install -r requirements.txt && \
+      python manage.py collectstatic --noinput && \
+      python manage.py makemigrations --noinput && \
+      python manage.py migrate --noinput
+    
+    # What this does:
+    # 1. Upgrades pip for latest packages
+    # 2. Installs Python dependencies from requirements.txt
+    # 3. Collects static files (CSS, JS) for WhiteNoise serving
+    # 4. Creates/applies Django migrations to database
+    
+    # ==========================================================================
+    # START CONFIGURATION
+    # ==========================================================================
+    
+    startCommand: gunicorn -c gunicorn.conf.py config.wsgi:application
+    
+    # Starts Gunicorn with production config:
+    # - Multi-worker threading (I/O efficient for LLM calls)
+    # - Worker recycling (prevents memory leaks)
+    # - Graceful shutdown
+    
+    # ==========================================================================
+    # HEALTH CHECK
+    # ==========================================================================
+    
+    healthCheckPath: /api/tickets/
+    # Render will check this endpoint every 10 seconds
+    # If it returns 200, service is healthy
+    
+    numInstances: 1  # Number of concurrent instances (scale up for production)
+    
+    # ==========================================================================
+    # ENVIRONMENT VARIABLES
+    # ==========================================================================
+    
+    envVars:
+      
+      # ————————————————————————————————————————————————————————————————————————
+      # DJANGO CORE SETTINGS
+      # ————————————————————————————————————————————————————————————————————————
+      
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings.render
+        # Uses the Render-optimized Django settings with:
+        # - Supabase database config
+        # - HTTPS enforcement
+        # - WhiteNoise static files
+        # - Production logging
+      
+      - key: DJANGO_SECRET_KEY
+        sync: false  # 👈 SET IN RENDER DASHBOARD — from generate_secret_key.py
+        # CRITICAL: Generate with: python backend/generate_secret_key.py
+        # Should be 50+ random characters with mixed symbols
+        # MUST be marked as Secret 🔒 in Render
+      
+      - key: DJANGO_ALLOWED_HOSTS
+        value: support-ticket-backend.onrender.com
+        # 👈 UPDATE AFTER FIRST DEPLOY with your actual Render domain
+        # Format: service-name-XXXXX.onrender.com
+        # Can include comma-separated values for multiple domains
+        # Examples:
+        # - support-ticket-backend-abc123.onrender.com
+        # - support-ticket-backend-abc123.onrender.com,yourdomain.com
+      
+      # ————————————————————————————————————————————————————————————————————————
+      # POSTGRESQL — SUPABASE CONNECTION
+      # ————————————————————————————————————————————————————————————————————————
+      # Your connection string:
+      # postgresql://postgres:ldL2WLPBzBNsJXrV@db.gadxxxarhgjcvirmjupp.supabase.co:5432/postgres
+      
+      - key: POSTGRES_ENGINE
+        value: django.db.backends.postgresql
+        # Don't change this — PostgreSQL handler
+      
+      - key: POSTGRES_DB
+        value: postgres
+        # Database name from your connection string
+        # Extract from: postgresql://.../@host:port/[DATABASE_NAME]
+      
+      - key: POSTGRES_USER
+        value: postgres
+        # Username from your connection string
+        # Extract from: postgresql://[USERNAME]:password@...
+      
+      - key: POSTGRES_PASSWORD
+        sync: false  # 👈 SET IN RENDER DASHBOARD
+        # Value: ldL2WLPBzBNsJXrV
+        # Extract from: postgresql://username:[PASSWORD]@...
+        # MUST be marked as Secret 🔒 in Render
+        # Contains: alphanumeric characters only (no special chars in this case)
+      
+      - key: POSTGRES_HOST
+        value: db.gadxxxarhgjcvirmjupp.supabase.co
+        # Supabase host from your connection string
+        # Extract from: postgresql://...@[HOST]:port/...
+        # Format: db.XXXXX.supabase.co
+      
+      - key: POSTGRES_PORT
+        value: "5432"
+        # PostgreSQL port
+        # Standard: 5432
+        # Connection pooling (if needed): 6543
+      
+      # ————————————————————————————————————————————————————————————————————————
+      # LLM INTEGRATION — GOOGLE GEMINI
+      # ————————————————————————————————————————————————————————————————————————
+      
+      - key: GEMINI_API_KEY
+        sync: false  # 👈 SET IN RENDER DASHBOARD
+        # Get from: https://aistudio.google.com/apikey
+        # MUST be marked as Secret 🔒 in Render
+        # Used by: backend/tickets/services/llm_service.py
+      
+      # ————————————————————————————————————————————————————————————————————————
+      # GUNICORN WORKERS
+      # ————————————————————————————————————————————————————————————————————————
+      
+      - key: GUNICORN_WORKERS
+        value: "2"
+        # Number of worker processes
+        # Formula: (2 × CPU_COUNT) + 1
+        # Free/Starter: 2-4
+        # Standard+: 8-16
+        # Auto-calculated by gunicorn.conf.py if not set
+      
+      # ————————————————————————————————————————————————————————————————————————
+      # CORS — FRONTEND CORS ORIGIN
+      # ————————————————————————————————————————————————————————————————————————
+      
+      - key: CORS_ALLOWED_ORIGINS
+        value: "http://localhost:3000"
+        # Comma-separated list of allowed frontend origins
+        # For local dev: http://localhost:3000
+        # For deployed frontend: https://frontend-name.onrender.com
+        # Format: http://localhost:3000,https://your-frontend.onrender.com
+        # 👈 UPDATE AFTER DEPLOYING FRONTEND
+      
+      # ————————————————————————————————————————————————————————————————————————
+      # DEBUG MODE
+      # ————————————————————————————————————————————————————————————————————————
+      
+      - key: DEBUG
+        value: "false"
+        # Must be "false" in production
+        # Never set to "true" on production server
+        # Only use "true" locally for development
+      
+      # ————————————————————————————————————————————————————————————————————————
+      # SECURITY & LOGGING
+      # ————————————————————————————————————————————————————————————————————————
+      
+      - key: SECURE_BROWSER_XSS_FILTER
+        value: "true"
+        # Enable XSS protection (X-XSS-Protection header)
+      
+      - key: SECURE_CONTENT_TYPE_NOSNIFF
+        value: "true"
+        # Prevent MIME type sniffing
+      
+      - key: X_FRAME_OPTIONS
+        value: "DENY"
+        # Prevent clickjacking attacks
+
+# =============================================================================
+# DEPLOYMENT INSTRUCTIONS
+# =============================================================================
+#
+# 1. PUSH TO GITHUB
+#    git add .
+#    git commit -m "Add Render blueprint"
+#    git push origin main
+#
+# 2. GO TO RENDER DASHBOARD
+#    https://dashboard.render.com
+#
+# 3. CONNECT GITHUB REPO
+#    - Click "New +" → "Web Service"
+#    - Select your repo: tickets_support_system
+#
+# 4. SET ENVIRONMENT VARIABLES IN RENDER DASHBOARD
+#    - DJANGO_SECRET_KEY (Mark as Secret 🔒)
+#    - POSTGRES_PASSWORD = ldL2WLPBzBNsJXrV (Mark as Secret 🔒)
+#    - GEMINI_API_KEY (Mark as Secret 🔒)
+#    - Keep other values as shown above
+#
+# 5. CLICK "CREATE WEB SERVICE"
+#    - Render will start building
+#    - Watch the Logs tab
+#    - When you see "Uvicorn running...", it's ready
+#
+# 6. UPDATE DJANGO_ALLOWED_HOSTS
+#    - After first deploy, get your service URL
+#    - Update DJANGO_ALLOWED_HOSTS with actual domain
+#    - Re-deploy
+#
+# 7. TEST YOUR API
+#    curl https://support-ticket-backend-XXXXX.onrender.com/api/tickets/
+#
+# 8. (OPTIONAL) DEPLOY FRONTEND
+#    - Create another Render service for frontend
+#    - Update CORS_ALLOWED_ORIGINS with frontend URL
+#    - Re-deploy backend
+#
+# =============================================================================
