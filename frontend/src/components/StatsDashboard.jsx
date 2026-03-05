@@ -16,9 +16,19 @@ export default function StatsDashboard({ refreshKey }) {
   const fetchStats = useCallback(async () => {
     try {
       const data = await getStats();
-      setStats(data);
+      console.log('Stats response:', data);
+      // Ensure breakdowns are objects, not null/undefined
+      const enrichedData = {
+        total_tickets: data.total_tickets || 0,
+        open_tickets: data.open_tickets || 0,
+        avg_tickets_per_day: data.avg_tickets_per_day || 0,
+        priority_breakdown: data.priority_breakdown || {},
+        category_breakdown: data.category_breakdown || {},
+      };
+      setStats(enrichedData);
     } catch (err) {
       console.error('Failed to load stats:', err);
+      setStats(null);
     } finally {
       setLoading(false);
     }
