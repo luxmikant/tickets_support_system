@@ -18,8 +18,17 @@ MAX_RETRIES=30   # 30 × 2s = 60 seconds max wait
 RETRIES=0
 until python -c "
 import os, psycopg2, sys
-try:
-    conn = psycopg2.connect(
+from urllib.parse import urlparse
+
+# Prefer DATABASE_URL (Render/Supabase), fall back to individual vars
+db_url = os.environ.get('DATABASE_URL')
+if db_url:
+    p = urlparse(db_url)
+    cfg = dict(dbname=p.path.lstrip('/'), user=p.username,
+               password=p.password, host=p.hostname,
+               port=p.port or 5432, connect_timeout=3)
+else:
+    cfg = dict(
         dbname=os.environ.get('POSTGRES_DB', 'tickets_db'),
         user=os.environ.get('POSTGRES_USER', 'tickets_user'),
         password=os.environ.get('POSTGRES_PASSWORD', 'tickets_password'),
@@ -27,6 +36,8 @@ try:
         port=os.environ.get('POSTGRES_PORT', '5432'),
         connect_timeout=3,
     )
+try:
+    conn = psycopg2.connect(**cfg)
     conn.close()
     sys.exit(0)
 except Exception as e:
