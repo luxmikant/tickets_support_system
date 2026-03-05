@@ -53,16 +53,16 @@ services:
         value: postgres  # From your Supabase connection string
       
       - key: POSTGRES_USER
-        value: postgres  # From your Supabase connection string
+        value: postgres.gadxxxarhgjcvirmjupp  # Supabase Connection Pooler user
       
       - key: POSTGRES_PASSWORD
-        sync: false  # 🔒 Set in Render dashboard: ldL2WLPBzBNsJXrV
+        sync: false  # 🔒 Set in Render dashboard: CWgRmUvtFQfdxrwa (pooler password)
       
       - key: POSTGRES_HOST
-        value: db.gadxxxarhgjcvirmjupp.supabase.co  # From your Supabase connection string
+        value: aws-1-ap-southeast-1.pooler.supabase.com  # Supabase Connection Pooler (IPv4 only)
       
       - key: POSTGRES_PORT
-        value: "5432"  # Standard PostgreSQL port
+        value: "6543"  # Connection Pooler port
       
       # LLM API Keys (Google Gemini)
       - key: GEMINI_API_KEY
