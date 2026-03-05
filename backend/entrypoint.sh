@@ -12,61 +12,44 @@ echo "========================================"
 echo " Support Ticket System — Starting Up"
 echo "========================================"
 
-# --- Wait for PostgreSQL to be ready ---
-echo "[1/4] Waiting for database..."
-MAX_RETRIES=30   # 30 × 2s = 60 seconds max wait
-RETRIES=0
-until python -c "
+# --- Quick DB connectivity check (non-fatal) ---
+# Migrations run during build (buildCommand in render.yaml).
+# This is a soft check only — a failure here does NOT abort startup.
+echo "[1/4] Checking database connectivity..."
+python -c "
 import os, psycopg2, sys
 from urllib.parse import urlparse
 
-# Prefer DATABASE_URL (Render/Supabase), fall back to individual vars
 db_url = os.environ.get('DATABASE_URL')
 if db_url:
     p = urlparse(db_url)
     cfg = dict(dbname=p.path.lstrip('/'), user=p.username,
                password=p.password, host=p.hostname,
-               port=p.port or 5432, connect_timeout=3)
+               port=p.port or 5432, connect_timeout=5)
 else:
     cfg = dict(
         dbname=os.environ.get('POSTGRES_DB', 'tickets_db'),
         user=os.environ.get('POSTGRES_USER', 'tickets_user'),
         password=os.environ.get('POSTGRES_PASSWORD', 'tickets_password'),
         host=os.environ.get('POSTGRES_HOST', 'db'),
-        port=os.environ.get('POSTGRES_PORT', '5432'),
-        connect_timeout=3,
+        port=int(os.environ.get('POSTGRES_PORT', '5432')),
+        connect_timeout=5,
     )
 try:
     conn = psycopg2.connect(**cfg)
     conn.close()
-    sys.exit(0)
+    print('  Database is reachable!', flush=True)
 except Exception as e:
-    print(f'  Connection error: {e}', flush=True)
-    sys.exit(1)
-" 2>&1; do
-    RETRIES=$((RETRIES + 1))
-    if [ "$RETRIES" -ge "$MAX_RETRIES" ]; then
-        echo "ERROR: Database did not become ready after $((MAX_RETRIES * 2))s — check your POSTGRES_* environment variables."
-        exit 1
-    fi
-    echo "  Database not ready — retrying in 2s... ($RETRIES/$MAX_RETRIES)"
-    sleep 2
-done
-echo "  Database is ready!"
-
-# --- Generate & apply migrations ---
-echo "[2/4] Generating and applying database migrations..."
-python manage.py makemigrations --noinput
-python manage.py migrate --noinput
-echo "  Migrations applied!"
+    print(f'  Warning: DB pre-check failed ({e}) — continuing anyway.', flush=True)
+" 2>&1 || true
 
 # --- Collect static files ---
-echo "[3/4] Collecting static files..."
+echo "[2/4] Collecting static files..."
 python manage.py collectstatic --noinput 2>/dev/null || true
 echo "  Static files collected!"
 
 # --- Start Gunicorn ---
-echo "[4/4] Starting Gunicorn..."
+echo "[3/4] Starting Gunicorn..."
 echo "  Workers: ${GUNICORN_WORKERS:-auto}"
 echo "  Bind: 0.0.0.0:8000"
 echo "  Graceful timeout: 30s"
