@@ -16,3 +16,12 @@ google-generativeai>=0.5.0
 
 # Production Server
 gunicorn>=21.0
+
+# Static files & compression (Render requirement)
+whitenoise>=6.0
+
+# Database URL parsing (for Supabase/Render)
+dj-database-url>=1.2
+
+# Environment variable management
+python-dotenv>=1.0
